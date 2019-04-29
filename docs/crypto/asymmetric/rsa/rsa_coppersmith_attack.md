@@ -1,16 +1,46 @@
+---
+typora-root-url: ../../../
+---
+
 # Coppersmith 相关攻击
 
 ## 基本原理
 
-首先，我们来简单介绍一下 **Coppersmith method** 方法，该方法由 [Don Coppersmith](https://en.wikipedia.org/wiki/Don_Coppersmith) 提出，可以用来找到单变量或者二元变量的多项式在模某个整数下的根，这里我们主要以单变量为主，假设我们有如下的一个在模 N 意义下的多项式 F
+Coppersmith 相关攻击与[Don Coppersmith](https://en.wikipedia.org/wiki/Don_Coppersmith) 紧密相关，他提出了一种针对于模多项式（单变量，二元变量，甚至多元变量）找所有小整数根的多项式时间的方法。
 
-$$
-F(x)=x^n + a_{n-1} x^{n-1} + \cdots + a_1x + a_0
-$$
+这里我们以单变量为主进行介绍，假设
 
-假设该多项式在模 N 意义下有一个根 $x_0$，这里我们令 $x_0 < M^{\frac{1}{n}}$。如果等号成立的话，显然只有 $x^n$ 这一项，那 0 就是，也满足。
+- 模数为 N ，N 具有一个因子 $b\geq N^{\beta},0< \beta \leq 1$
+- 多项式 F 的次数为 $\delta$
 
-**Coppersmith method** 主要是通过 [Lenstra–Lenstra–Lovász lattice basis reduction algorithm](https://en.wikipedia.org/wiki/Lenstra%E2%80%93Lenstra%E2%80%93Lov%C3%A1sz_lattice_basis_reduction_algorithm)（LLL）方法来找到与该函数具有相同根 $x_0$ 但有更小系数的多项式。关于更加详细的介绍，请自行搜索。
+那么该方法可以在$O(c\delta^5log^9(N))$ 的复杂度内找到该多项式所有的根$x_0$，这里我们要求 $|x_0|<cN^{\frac{\beta^2}{\delta}}$ 。
+
+在这个问题中，我们的目标是找到在模 N 意义下多项式所有的根，这一问题被认为是复杂的。**Coppersmith method** 主要是通过 [Lenstra–Lenstra–Lovász lattice basis reduction algorithm](https://en.wikipedia.org/wiki/Lenstra%E2%80%93Lenstra%E2%80%93Lov%C3%A1sz_lattice_basis_reduction_algorithm)（LLL）方法找到
+
+- 与该多项式具有相同根 $x_0$
+- 更小系数
+- 定义域为整数域
+
+的多项式 g，由于在整数域上找多项式的根是简单的（Berlekamp–Zassenhaus），从而我们就得到了原多项式在模意义下的整数根。
+
+那么问题的关键就是如何将 f 转换到 g 呢？Howgrave-Graham 给出了一种思路
+
+![image-20180717210921382](figure/coppersmith-howgrave-graham.png)
+
+也就是说我们需要找到一个具有“更小系数”的多项式 g，也就是下面的转换方式
+
+![image-20180717211351350](ref/coppersmith-f2g.png)
+
+在 LLL 算法中，有两点是非常有用的
+
+- 只对原来的基向量进行整数线性变换，这可以使得我们在得到 g 时，仍然以原来的 $x_0$ 为根。
+- 生成的新的基向量的模长是有界的，这可以使得我们利用 Howgrave-Graham 定理。
+
+在这样的基础之上，我们再构造出多项式族 g 就可以了。
+
+关于更加细节的内容，请自行搜索。同时这部分内容也会不断更新。
+
+需要注意的是，由于 Coppersmith 根的约束，在 RSA 中的应用时，往往只适用于 e 较小的情况。
 
 ## Basic Broadcast Attack
 
@@ -127,6 +157,7 @@ H1sTaDs_B40aDcadt_attaCk_e_are_same_and_smA9l
 ### 题目
 
 - 2017 WHCTF OldDriver
+- 2018 N1CTF easy_fs
 
 ## Broadcast Attack with Linear Padding
 
@@ -157,13 +188,13 @@ $$
 这里我们关注一下 $e=3$，且 $f(x)=ax+b$ 的情况。首先我们有
 
 $$
-C_1 \equiv M_1 ^3 \bmod N$ 且$M_1 \equiv aM_2+b \bmod N
+C_1 \equiv M_1 ^3 \bmod N,M_1 \equiv aM_2+b \bmod N
 $$
 
 那么我们有
 
 $$
-C_1 \equiv (aM_2+b)^3 \bmod N$ 且$C_2 \equiv M_2^3 \bmod N
+C_1 \equiv (aM_2+b)^3 \bmod N,C_2 \equiv M_2^3 \bmod N
 $$
 
 我们需要明确一下我们想要得到的是消息 m，所以需要将其单独构造出来。
@@ -220,7 +251,7 @@ $$
 
 有兴趣的可以进一步阅读 [A New Related Message Attack on RSA](https://www.iacr.org/archive/pkc2005/33860001/33860001.pdf) 以及 [paper](https://www.cs.unc.edu/~reiter/papers/1996/Eurocrypt.pdf) 这里暂不做过多的讲解。
 
-### 例子
+### SCTF RSA3
 
 这里我们以 SCTF RSA3 中的 level3 为例进行介绍。首先，跟踪 TCP 流可以知道，加密方式是将明文加上用户的 user id 进行加密，而且还存在多组。这里我们选择第 0 组和第 9 组，他们的模数一样，解密脚本如下
 
@@ -300,12 +331,15 @@ F4An8LIn_rElT3r_rELa53d_Me33Age_aTtaCk_e_I2_s7aLL
 ### 题目
 
 - hitcon 2014 rsaha
+- N1CTF 2018 rsa_padding
 
 ## Coppersmith’s short-pad attack
 
 ### 攻击条件
 
 目前在大部分消息加密之前都会进行 padding，但是如果 padding 的长度过短，也有**可能**被很容易地攻击。
+
+这里所谓 padding 过短，其实就是对应的多项式的根会过小。
 
 ### 攻击原理
 
@@ -340,7 +374,7 @@ $$
 C\equiv m^d \bmod N
 $$
 
-并且我们假设我们知道消息 m 的很大的一部分 $m_0$，即 $m=m_0+x$，但是我们不知道 $x$。那么我们就有可能通过该方法进行恢复消息。
+并且我们假设我们知道消息 m 的很大的一部分 $m_0$，即 $m=m_0+x$，但是我们不知道 $x$。那么我们就有可能通过该方法进行恢复消息。这里我们不知道的 x 其实就是多项式的根，需要满足 Coppersmith 的约束。
 
 可以参考 https://github.com/mimoo/RSA-and-LLL-attacks。
 
@@ -367,9 +401,9 @@ roots = coppersmith_howgrave_univariate(f, N, beta, mm, tt, XX)
 其中，
 
 - 必须满足 $q\geq N^{beta}$，所以这里给出了$beta=0.5$，显然两个因数中必然有一个是大于的。
-- XX 是 $f(x)=q'+x $在模 q 意义下的根的上界，自然我们可以选择调整它，这里其实也表明了我们已知的 $q'$ 与因数 q 之间可能的差距。
+- XX 是 $f(x)=q'+x$ 在模 q 意义下的根的上界，自然我们可以选择调整它，这里其实也表明了我们已知的 $q'$ 与因数 q 之间可能的差距。
 
-### 例题
+### 2016 HCTF RSA2
 
 这里我们以 2016 年 HCTF 中的 RSA2 为例进行介绍。
 
@@ -544,7 +578,7 @@ def pi_b(x, m):
 	m:
 		1: encrypt
 		0: decrypt
-	'''	
+	'''
 	enc = DES.new(key)
 	if m:
 		method = enc.encrypt
@@ -558,7 +592,7 @@ def pi_b(x, m):
 	return bytes_to_long(r)
 ```
 
-其中，我们已知了秘钥 key，所以只要我们有密文就可以解密。此外，可以看到的是程序是对传入的消息进行 8 字节分组，采用密码本方式加密，所以密文之间互不影响。
+其中，我们已知了密钥 key，所以只要我们有密文就可以解密。此外，可以看到的是程序是对传入的消息进行 8 字节分组，采用密码本方式加密，所以密文之间互不影响。
 
 下面
 
@@ -607,7 +641,7 @@ if __name__=="__main__":
 解密结果如下
 
 ```python
-➜  2016-HCTF-RSA2 git:(master) ✗ python exp_p4.py 
+➜  2016-HCTF-RSA2 git:(master) ✗ python exp_p4.py
 0xa37302107c17fb4ef5c3443f4ef9e220ac659670077b9aa9ff7381d11073affe9183e88acae0ab61fb75a3c7815ffcb1b756b27c4d90b2e0ada753fa17cc108c1d0de82c747db81b9e6f49bde1362693L
 ```
 
@@ -667,7 +701,7 @@ hctf{d8e8fca2dc0f896fd7cb4cb0031ba249}
 
 ### 攻击条件
 
-当 d 较小时，满足 $d\leq N^{0.292}$ 时，我们可以利用该工具，在一定程度上该要攻击比 Wiener's Attack要强一些。
+当 d 较小时，满足 $d\leq N^{0.292}$ 时，我们可以利用该工具，在一定程度上该要攻击比 Wiener's Attack 要强一些。
 
 ### 攻击原理
 
@@ -738,7 +772,7 @@ $$
             nlist.append(long(N,16))
             elist.append(long(e,16))
             clist.append(long(c,16))
-    
+
     for i in range(len(nlist)):
         print 'index i'
         n = nlist[i]
@@ -763,7 +797,7 @@ private key found: 2397458484254696004708038691496600107008759624666260879602258
 the plaintext: flag_S0Y0UKN0WW13N3R$4TT4CK!
 ```
 
+## 参考资料
 
-
-
-
+- Survey: Lattice Reduction Attacks on RSA
+- An Introduction to Coppersmith’s method and Applications in Cryptology
